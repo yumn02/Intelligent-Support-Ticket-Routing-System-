@@ -1,0 +1,394 @@
+{
+  "name": "Intelligent Support Ticket Routing System",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {},
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -200,
+        -40
+      ],
+      "id": "a51892be-45df-47ac-9dbb-1b2ce093fedc",
+      "name": "New Support Email Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "lxYwOJ7SVEqbR6BK",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "65f33120-1377-4adb-8d2d-aea4adc4ceb2",
+              "name": "email_body",
+              "value": "={{ $json.text || $json.textAsHtml || $json.html || $json.snippet || \"NO_BODY_FOUND\" }}\n",
+              "type": "string"
+            },
+            {
+              "id": "760aaa07-94fd-427c-9f41-0a4dc9a35674",
+              "name": "GEMINI_API_KEY",
+              "value": "AIzaSyCsva6A6ML73ihq-o6H_Mj3jDkZjueN9Ak",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        20,
+        -40
+      ],
+      "id": "40008312-d6a1-42e8-b114-7036e144c548",
+      "name": "Extract Email Body"
+    },
+    {
+      "parameters": {
+        "command": "=python classify_email.py \"{{ $json.email_body.replace(/\\n/g, ' ').replace(/\\r/g, ' ').trim() }}\" \"{{ $json.GEMINI_API_KEY }}\"\n"
+      },
+      "type": "n8n-nodes-base.executeCommand",
+      "typeVersion": 1,
+      "position": [
+        240,
+        -40
+      ],
+      "id": "15e025fb-48c0-4765-97df-ec8d2a93c9c8",
+      "name": "Classify Email via LLM (Python)"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.trimmed_stdout }}",
+                    "rightValue": "Billing Inquiry",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "4eb0be5d-a720-4d71-98e9-82f9d5b27fa3"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "1ac66377-b6bd-4414-b9cd-61ad8eac539e",
+                    "leftValue": "={{ $json.trimmed_stdout }}",
+                    "rightValue": "Technical Issue",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e2e29769-bd9f-435d-ac21-26ec5251191a",
+                    "leftValue": "={{ $json.trimmed_stdout }}",
+                    "rightValue": "Sales Question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "cd5ba322-9866-4086-9ae9-b717c9ddf65b",
+                    "leftValue": "={{ $json.trimmed_stdout }}",
+                    "rightValue": "General Feedback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        660,
+        -60
+      ],
+      "id": "e74f1993-e6a2-4f72-a10e-233164328ce7",
+      "name": "Check Routes by Categories"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee50fa3e-2cf9-4c0c-b942-9dcc6a60a1cb",
+              "name": "fake_teams_message",
+              "value": "= New Billing Inquiry received:  {{ $json.email_body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        -200
+      ],
+      "id": "26ec02d3-25be-4f8b-8324-ed4579ae81ee",
+      "name": "Simulated Teams Message - Billing"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee50fa3e-2cf9-4c0c-b942-9dcc6a60a1cb",
+              "name": "fake_teams_message",
+              "value": "= New Technical Issue received:  {{ $json.email_body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        -40
+      ],
+      "id": "92913169-46bd-4cbb-ac2a-7768961274e8",
+      "name": "Simulated Teams Message - Technical"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee50fa3e-2cf9-4c0c-b942-9dcc6a60a1cb",
+              "name": "fake_teams_message",
+              "value": "= New Sales Question received:  {{ $json.email_body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        140
+      ],
+      "id": "2b8cc907-ed71-4315-b141-58923b50f0fc",
+      "name": "Simulated Teams Message - Sales"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee50fa3e-2cf9-4c0c-b942-9dcc6a60a1cb",
+              "name": "fake_teams_message",
+              "value": "= New General Feedback received:  {{ $json.email_body }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        940,
+        340
+      ],
+      "id": "54a07b13-7dbd-4b11-9166-40ad1dd55836",
+      "name": "Simulated Teams Message - Feedback"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "36c936c2-2211-4de6-9d26-3e20a8e3ee78",
+              "name": "raw_stdout",
+              "value": "={{ $json.stdout }}",
+              "type": "string"
+            },
+            {
+              "id": "adffeb73-bcb5-4888-a6f0-f6aaca1e7e39",
+              "name": "trimmed_stdout",
+              "value": "={{ $json.stdout.trim() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        440,
+        -40
+      ],
+      "id": "36f1b689-134f-42c2-92b2-1270eb65961f",
+      "name": "Clean Classification Output"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "New Support Email Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Body",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Body": {
+      "main": [
+        [
+          {
+            "node": "Classify Email via LLM (Python)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Email via LLM (Python)": {
+      "main": [
+        [
+          {
+            "node": "Clean Classification Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Routes by Categories": {
+      "main": [
+        [
+          {
+            "node": "Simulated Teams Message - Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Simulated Teams Message - Technical",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Simulated Teams Message - Sales",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Simulated Teams Message - Feedback",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clean Classification Output": {
+      "main": [
+        [
+          {
+            "node": "Check Routes by Categories",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2294148a-f867-4baa-9fc9-85c9768e0270",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a5c05f9c47278ec76085e67256dff6005e24e0210f807149e85822e10278cd72"
+  },
+  "id": "tLqSByMXp1U6zZUh",
+  "tags": []
+}
